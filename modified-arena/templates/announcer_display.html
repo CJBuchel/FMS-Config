@@ -1,0 +1,24 @@
+{{define "title"}}Announcer Display{{end}}
+{{define "body"}}
+<h3 id="matchName"></h3>
+<div class="row">
+  <div class="col-sm-3"><h4>Team #</h4></div>
+  <div class="col-sm-5"><h4>Nickname</h4></div>
+  <div class="col-sm-4"><h4>Location</h4></div>
+</div>
+<div id="teams" class="row"></div>
+<br />
+<div class="row">
+  <div id="matchState" class="col-sm-2 col-sm-offset-2 well well-sm text-center">&nbsp;</div>
+  <div id="matchTime" class="col-sm-2 well well-sm text-center">&nbsp;</div>
+  <div id="redScore" class="col-sm-2 well well-sm well-red text-center">&nbsp;</div>
+  <div id="blueScore" class="col-sm-2 well well-sm well-blue text-center">&nbsp;</div>
+</div>
+<div id="matchResult" class="modal" style="top: 5%;"></div>
+{{end}}
+{{define "head"}}
+{{end}}
+{{define "script"}}
+<script src="/static/js/match_timing.js"></script>
+<script src="/static/js/announcer_display.js"></script>
+{{end}}

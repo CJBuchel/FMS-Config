@@ -4,4 +4,4 @@
 4. run `del flash:config.text`
 5. run `del flash:vlan.dat`
 6. run `boot`
-
+7. run `configure terminal` and copy and paste the specific switch commands

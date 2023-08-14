@@ -1,0 +1,69 @@
+{{/*
+  Copyright 2014 Team 254. All Rights Reserved.
+  Author: pat@patfairbank.com (Patrick Fairbank)
+
+  UI for configuring audience display lower thirds.
+*/}}
+{{define "title"}}Lower Thirds{{end}}
+{{define "body"}}
+<div class="row">
+  <div class="col-lg-6 col-lg-offset-3">
+    <div class="well">
+      <legend>Lower Thirds</legend>
+      {{range $i, $lowerThird := .LowerThirds}}
+        <form class="form-horizontal">
+          <div class="form-group">
+            <div class="col-lg-6">
+              <input type="hidden" name="id" value="{{$lowerThird.Id}}" />
+              <input type="text" class="form-control" name="topText" value="{{$lowerThird.TopText}}"
+                  placeholder="Top Text"/>
+              <input type="text" class="form-control" name="bottomText" value="{{$lowerThird.BottomText}}"
+                  placeholder="Bottom Text"/>
+              <input type="hidden" name="displayOrder" value="{{$i}}" />
+            </div>
+            <div class="col-lg-6">
+              <button type="button" class="btn btn-info btn-lower-third" onclick="saveLowerThird(this);">
+                Save
+              </button>
+              <button type="button" class="btn btn-success btn-lower-third" onclick="showLowerThird(this);">
+                Show
+              </button>
+              <button type="button" class="btn btn-info" onclick="reorderLowerThird(this, true);">
+                <i class="glyphicon glyphicon-arrow-up"></i>
+              </button>
+              <br />
+              <button type="button" class="btn btn-primary btn-lower-third" onclick="deleteLowerThird(this);">
+                Delete
+              </button>
+              <button type="button" class="btn btn-default btn-lower-third" onclick="hideLowerThird(this);">
+                Hide
+              </button>
+              <button type="button" class="btn btn-info" onclick="reorderLowerThird(this, false);">
+                <i class="glyphicon glyphicon-arrow-down"></i>
+              </button>
+            </div>
+          </div>
+        </form>
+      {{end}}
+      <form class="form-horizontal">
+        <div class="form-group">
+          <div class="col-lg-6">
+            <input type="hidden" name="id" value="0" />
+            <input type="text" class="form-control" name="topText" placeholder="Top or Solo Text" />
+            <input type="text" class="form-control" name="bottomText" placeholder="Bottom Text" />
+            <input type="hidden" name="displayOrder" value="{{len .LowerThirds}}" />
+          </div>
+          <div class="col-lg-6">
+            <button type="button" class="btn btn-info btn-lower-third" name="save" onclick="saveLowerThird(this);">
+              Save
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{{end}}
+{{define "script"}}
+<script src="/static/js/lower_thirds.js"></script>
+{{end}}
