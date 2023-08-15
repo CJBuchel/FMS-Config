@@ -63,6 +63,11 @@ func (ap *AccessPoint) SetSettings(address, username, password string, teamChann
 
 // Loops indefinitely to read status from and write configurations to the access point.
 func (ap *AccessPoint) Run() {
+	var bypassConfig bool = true
+	if bypassConfig {
+		log.Printf("CJ Hack set, bypass config and hardcode addresses and auth")
+	}
+
 	for {
 		// Check if there are any pending configuration requests; if not, periodically poll wifi status.
 		select {
@@ -73,10 +78,10 @@ func (ap *AccessPoint) Run() {
 				request = <-ap.configRequestChan
 			}
 
-			ap.handleTeamWifiConfiguration(request)
+			ap.handleTeamWifiConfiguration(request, bypassConfig)
 		case <-time.After(time.Second * accessPointPollPeriodSec):
-			ap.updateTeamWifiStatuses()
-			ap.updateTeamWifiBTU()
+			ap.updateTeamWifiStatuses(bypassConfig)
+			ap.updateTeamWifiBTU(bypassConfig)
 		}
 	}
 }
@@ -92,7 +97,7 @@ func (ap *AccessPoint) ConfigureTeamWifi(teams [6]*model.Team) error {
 	}
 }
 
-func (ap *AccessPoint) handleTeamWifiConfiguration(teams [6]*model.Team) {
+func (ap *AccessPoint) handleTeamWifiConfiguration(teams [6]*model.Team, bypassConfig bool) {
 	if !ap.networkSecurityEnabled {
 		return
 	}
@@ -102,11 +107,11 @@ func (ap *AccessPoint) handleTeamWifiConfiguration(teams [6]*model.Team) {
 	}
 
 	// Clear the state of the radio before loading teams.
-	ap.configureTeams([6]*model.Team{nil, nil, nil, nil, nil, nil})
-	ap.configureTeams(teams)
+	ap.configureTeams([6]*model.Team{nil, nil, nil, nil, nil, nil}, bypassConfig)
+	ap.configureTeams(teams, bypassConfig)
 }
 
-func (ap *AccessPoint) configureTeams(teams [6]*model.Team) {
+func (ap *AccessPoint) configureTeams(teams [6]*model.Team, bypassConfig bool) {
 	retryCount := 1
 
 	for {
@@ -119,7 +124,7 @@ func (ap *AccessPoint) configureTeams(teams [6]*model.Team) {
 
 			command := addConfigurationHeader(config)
 
-			_, err = ap.runCommand(command)
+			_, err = ap.runCommand(command, bypassConfig)
 			if err != nil {
 				log.Printf("Error writing team configuration to AP %v", err)
 				retryCount++
@@ -130,7 +135,7 @@ func (ap *AccessPoint) configureTeams(teams [6]*model.Team) {
 			teamIndex++
 		}
 		time.Sleep(time.Second * accessPointConfigRetryIntervalSec)
-		err := ap.updateTeamWifiStatuses()
+		err := ap.updateTeamWifiStatuses(bypassConfig)
 		if err == nil && ap.configIsCorrectForTeams(teams) {
 			log.Printf("Successfully configured WiFi after %d attempts.", retryCount)
 			break
@@ -159,12 +164,12 @@ func (ap *AccessPoint) configIsCorrectForTeams(teams [6]*model.Team) bool {
 }
 
 // Fetches the current wifi network status from the access point and updates the status structure.
-func (ap *AccessPoint) updateTeamWifiStatuses() error {
+func (ap *AccessPoint) updateTeamWifiStatuses(bypassConfig bool) error {
 	if !ap.networkSecurityEnabled {
 		return nil
 	}
 
-	output, err := ap.runCommand("iwinfo")
+	output, err := ap.runCommand("iwinfo", bypassConfig)
 	if err == nil {
 		err = decodeWifiInfo(output, ap.TeamWifiStatuses[:])
 	}
@@ -180,17 +185,30 @@ func (ap *AccessPoint) updateTeamWifiStatuses() error {
 }
 
 // Logs into the access point via SSH and runs the given shell command.
-func (ap *AccessPoint) runCommand(command string) (string, error) {
+func (ap *AccessPoint) runCommand(command string, bypassConfig bool) (string, error) {
 	// Open an SSH connection to the AP.
 	// @TODO switch back to using coded username and password
-	log.Printf("CJ Hack set, using hardcoded address, username & password for AP")
-	config := &ssh.ClientConfig{User: "root",
-		Auth:            []ssh.AuthMethod{ssh.Password("ubnt")},
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-		Timeout:         accessPointConnectTimeoutSec * time.Second}
+	var config *ssh.ClientConfig
+	var sshPort int
+	var address string
+	if bypassConfig {
+		config = &ssh.ClientConfig{User: "root",
+			Auth:            []ssh.AuthMethod{ssh.Password("ubnt")},
+			HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+			Timeout:         accessPointConnectTimeoutSec * time.Second}
+		address = "10.0.100.3"
+		sshPort = 22
+	} else {
+		config = &ssh.ClientConfig{User: ap.username,
+			Auth:            []ssh.AuthMethod{ssh.Password(ap.password)},
+			HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+			Timeout:         accessPointConnectTimeoutSec * time.Second}
+		address = ap.address
+		sshPort = accessPointSshPort
+	}
 
-	conn, err := ssh.Dial("tcp", fmt.Sprintf("%s:%d", "10.0.100.3", 22), config)
-	// conn, err := ssh.Dial("tcp", fmt.Sprintf("%s:%d", "10.0.100.3", 22), config)
+	conn, err := ssh.Dial("tcp", fmt.Sprintf("%s:%d", address, sshPort), config)
+
 	if err != nil {
 		log.Printf("Error connecting to AP using tcp dial up: %v", err)
 		log.Printf("Address was: %s, Username was: %s, Password was: %s", ap.address, ap.username, ap.password)
@@ -272,7 +290,7 @@ func decodeWifiInfo(wifiInfo string, statuses []TeamWifiStatus) error {
 }
 
 // Polls the 6 wlans on the ap for bandwith use and updates data structure.
-func (ap *AccessPoint) updateTeamWifiBTU() error {
+func (ap *AccessPoint) updateTeamWifiBTU(bypassConfig bool) error {
 	if !ap.networkSecurityEnabled {
 		return nil
 	}
@@ -280,7 +298,7 @@ func (ap *AccessPoint) updateTeamWifiBTU() error {
 	infWifi := []string{"0", "0-1", "0-2", "0-3", "0-4", "0-5"}
 	for i := range ap.TeamWifiStatuses {
 
-		output, err := ap.runCommand(fmt.Sprintf("luci-bwc -i wlan%s", infWifi[i]))
+		output, err := ap.runCommand(fmt.Sprintf("luci-bwc -i wlan%s", infWifi[i]), bypassConfig)
 		if err == nil {
 			btu := parseBtu(output)
 			ap.TeamWifiStatuses[i].MBits = btu
