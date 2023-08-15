@@ -9,11 +9,13 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"github.com/Team254/cheesy-arena/model"
+	"log"
 	"net"
 	"regexp"
 	"strconv"
 	"sync"
+
+	"github.com/Team254/cheesy-arena/model"
 )
 
 const switchTelnetPort = 23
@@ -59,6 +61,7 @@ func (sw *Switch) ConfigureTeamEthernet(teams [6]*model.Team) error {
 		if oldTeamVlans[team.Id] == vlan {
 			delete(oldTeamVlans, team.Id)
 		} else {
+
 			addTeamVlansCommand += fmt.Sprintf(
 				"ip dhcp excluded-address 10.%d.%d.1 10.%d.%d.100\n"+
 					"no ip dhcp pool dhcp%d\n"+
@@ -73,6 +76,8 @@ func (sw *Switch) ConfigureTeamEthernet(teams [6]*model.Team) error {
 				team.Id/100, team.Id%100, team.Id/100, team.Id%100, vlan, vlan, team.Id/100, team.Id%100, team.Id/100,
 				team.Id%100, vlan, vlan, team.Id/100, team.Id%100, ServerIpAddress, vlan, vlan, team.Id/100,
 				team.Id%100)
+
+			log.Printf("Ethernet config: %v", addTeamVlansCommand)
 		}
 	}
 	replaceTeamVlan(teams[0], red1Vlan)
