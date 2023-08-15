@@ -182,6 +182,8 @@ func (ap *AccessPoint) updateTeamWifiStatuses() error {
 // Logs into the access point via SSH and runs the given shell command.
 func (ap *AccessPoint) runCommand(command string) (string, error) {
 	// Open an SSH connection to the AP.
+	// @TODO switch back to using coded username and password
+	log.Printf("CJ Hack set, using hardcoded address, username & password for AP")
 	config := &ssh.ClientConfig{User: "root",
 		Auth:            []ssh.AuthMethod{ssh.Password("ubnt")},
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
@@ -190,8 +192,7 @@ func (ap *AccessPoint) runCommand(command string) (string, error) {
 	conn, err := ssh.Dial("tcp", fmt.Sprintf("%s:%d", "10.0.100.3", 22), config)
 	// conn, err := ssh.Dial("tcp", fmt.Sprintf("%s:%d", "10.0.100.3", 22), config)
 	if err != nil {
-		log.Printf("Error connecting to AP using tcp dial up")
-		log.Printf("Error:  %v", err)
+		log.Printf("Error connecting to AP using tcp dial up: %v", err)
 		log.Printf("Address was: %s, Username was: %s, Password was: %s", ap.address, ap.username, ap.password)
 		return "", err
 	}
