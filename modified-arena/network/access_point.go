@@ -240,7 +240,7 @@ func (ap *AccessPoint) runCommand(command string, bypassConfig bool) (string, er
 }
 
 func addConfigurationHeader(commandList string) string {
-	return fmt.Sprintf("uci batch <<ENDCONFIG && wifi up radio0\n%s\ncommit wireless\nENDCONFIG\n", commandList)
+	return fmt.Sprintf("uci batch <<ENDCONFIG && wifi up radio1\n%s\ncommit wireless\nENDCONFIG\n", commandList)
 }
 
 // Verifies WPA key validity and produces the configuration command for the given team.
@@ -295,7 +295,7 @@ func (ap *AccessPoint) updateTeamWifiBTU(bypassConfig bool) error {
 		return nil
 	}
 
-	infWifi := []string{"0", "0-1", "0-2", "0-3", "0-4", "0-5"}
+	infWifi := []string{"1", "1-1", "1-2", "1-3", "1-4", "1-5"}
 	for i := range ap.TeamWifiStatuses {
 
 		output, err := ap.runCommand(fmt.Sprintf("luci-bwc -i wlan%s", infWifi[i]), bypassConfig)

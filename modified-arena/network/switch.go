@@ -139,6 +139,7 @@ func (sw *Switch) runCommand(command string) (string, error) {
 	// Open a Telnet connection to the switch.
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", sw.address, sw.port))
 	if err != nil {
+		log.Printf("Error while connecting to switch: %s", err)
 		return "", err
 	}
 	defer conn.Close()
@@ -148,10 +149,12 @@ func (sw *Switch) runCommand(command string) (string, error) {
 	_, err = writer.WriteString(fmt.Sprintf("%s\nenable\n%s\nterminal length 0\n%sexit\n", sw.password, sw.password,
 		command))
 	if err != nil {
+		log.Printf("Error while writing to switch: %s", err)
 		return "", err
 	}
 	err = writer.Flush()
 	if err != nil {
+		log.Printf("Error while flushing to switch: %s", err)
 		return "", err
 	}
 
@@ -159,6 +162,7 @@ func (sw *Switch) runCommand(command string) (string, error) {
 	var reader bytes.Buffer
 	_, err = reader.ReadFrom(conn)
 	if err != nil {
+		log.Printf("Error while reading from switch: %s", err)
 		return "", err
 	}
 	return reader.String(), nil

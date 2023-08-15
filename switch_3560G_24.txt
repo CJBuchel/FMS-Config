@@ -24,7 +24,7 @@ ip dhcp excluded-address 10.0.100.1 10.0.100.100
 !
 ip dhcp pool dhcppool
  network 10.0.100.0 255.255.255.0
- domain-name team254.com
+ domain-name warp.com
  dns-server 8.8.8.8 8.8.4.4 
  default-router 10.0.100.1 
  lease 7
