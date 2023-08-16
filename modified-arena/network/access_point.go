@@ -296,16 +296,6 @@ func decodeWifiInfo(wifiInfo string, statuses []TeamWifiStatus) error {
 			// log.Printf("Skipping interface %d: %v", i, ssids[i])
 		}
 	}
-
-	// for i := range statuses {
-	// 	log.Printf("position: %d, ssid: %v, link quality: %v", i, statuses[i].TeamId, statuses[i].RadioLinked)
-	// }
-
-	// Ensure we've parsed enough 5GHz networks
-	// if teamInterfaces != 6 {
-	// 	return fmt.Errorf("Could not parse wifi info; expected 6 team networks on 5GHz, got %d.", teamInterfaces)
-	// }
-
 	return nil
 }
 
