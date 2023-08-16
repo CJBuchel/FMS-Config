@@ -63,7 +63,7 @@ func (ap *AccessPoint) SetSettings(address, username, password string, teamChann
 
 // Loops indefinitely to read status from and write configurations to the access point.
 func (ap *AccessPoint) Run() {
-	var bypassConfig bool = true
+	var bypassConfig bool = false
 	if bypassConfig {
 		log.Printf("CJ Hack set, bypass config and hardcode addresses and auth")
 	}
@@ -139,6 +139,9 @@ func (ap *AccessPoint) configureTeams(teams [6]*model.Team, bypassConfig bool) {
 		if err == nil && ap.configIsCorrectForTeams(teams) {
 			log.Printf("Successfully configured WiFi after %d attempts.", retryCount)
 			break
+		} else {
+
+			// log.Printf("Error configuring WiFi: %v", err)
 		}
 		log.Printf("WiFi configuration still incorrect after %d attempts; trying again.", retryCount)
 	}
@@ -146,7 +149,9 @@ func (ap *AccessPoint) configureTeams(teams [6]*model.Team, bypassConfig bool) {
 
 // Returns true if the configured networks as read from the access point match the given teams.
 func (ap *AccessPoint) configIsCorrectForTeams(teams [6]*model.Team) bool {
+
 	if !ap.initialStatusesFetched {
+		log.Printf("Fail on initial status")
 		return false
 	}
 
@@ -156,6 +161,7 @@ func (ap *AccessPoint) configIsCorrectForTeams(teams [6]*model.Team) bool {
 			expectedTeamId = team.Id
 		}
 		if ap.TeamWifiStatuses[i].TeamId != expectedTeamId {
+			log.Printf("Fail on team id, expected %d in position %d, got %d", expectedTeamId, i, ap.TeamWifiStatuses[i].TeamId)
 			return false
 		}
 	}
@@ -170,6 +176,7 @@ func (ap *AccessPoint) updateTeamWifiStatuses(bypassConfig bool) error {
 	}
 
 	output, err := ap.runCommand("iwinfo", bypassConfig)
+
 	if err == nil {
 		err = decodeWifiInfo(output, ap.TeamWifiStatuses[:])
 	}
@@ -210,8 +217,8 @@ func (ap *AccessPoint) runCommand(command string, bypassConfig bool) (string, er
 	conn, err := ssh.Dial("tcp", fmt.Sprintf("%s:%d", address, sshPort), config)
 
 	if err != nil {
-		log.Printf("Error connecting to AP using tcp dial up: %v", err)
-		log.Printf("Address was: %s, Username was: %s, Password was: %s", ap.address, ap.username, ap.password)
+		// log.Printf("Error connecting to AP using tcp dial up: %v", err)
+		// log.Printf("Address was: %s, Username was: %s, Password was: %s", ap.address, ap.username, ap.password)
 		return "", err
 	}
 	session, err := conn.NewSession()
@@ -273,18 +280,31 @@ func decodeWifiInfo(wifiInfo string, statuses []TeamWifiStatus) error {
 	ssids := ssidRe.FindAllStringSubmatch(wifiInfo, -1)
 	linkQualityRe := regexp.MustCompile("Link Quality: ([-\\w ]+)/([-\\w ]+)")
 	linkQualities := linkQualityRe.FindAllStringSubmatch(wifiInfo, -1)
+	GHzRe := regexp.MustCompile(`Channel: \d+ \((\d+\.\d{1,3}) GHz\)`)
+	GHzFrequencies := GHzRe.FindAllStringSubmatch(wifiInfo, -1)
 
-	// There should be six networks present -- one for each team on the 5GHz radio.
-	if len(ssids) < 6 || len(linkQualities) < 6 {
-		return fmt.Errorf("Could not parse wifi info; expected 6 team networks, got %d.", len(ssids))
+	teamInterfaces := 0
+
+	for i := range ssids {
+		if !strings.Contains(GHzFrequencies[i][1], "2.4") {
+			ssid := ssids[i][1]
+			linkQualityNumerator := linkQualities[i][1]
+			statuses[teamInterfaces].TeamId, _ = strconv.Atoi(ssid) // Convert non-numeric SSIDs to zero
+			statuses[teamInterfaces].RadioLinked = linkQualityNumerator != "unknown"
+			teamInterfaces++
+		} else {
+			// log.Printf("Skipping interface %d: %v", i, ssids[i])
+		}
 	}
 
-	for i := range statuses {
-		ssid := ssids[i][1]
-		statuses[i].TeamId, _ = strconv.Atoi(ssid) // Any non-numeric SSIDs will be represented by a zero.
-		linkQualityNumerator := linkQualities[i][1]
-		statuses[i].RadioLinked = linkQualityNumerator != "unknown"
-	}
+	// for i := range statuses {
+	// 	log.Printf("position: %d, ssid: %v, link quality: %v", i, statuses[i].TeamId, statuses[i].RadioLinked)
+	// }
+
+	// Ensure we've parsed enough 5GHz networks
+	// if teamInterfaces != 6 {
+	// 	return fmt.Errorf("Could not parse wifi info; expected 6 team networks on 5GHz, got %d.", teamInterfaces)
+	// }
 
 	return nil
 }
