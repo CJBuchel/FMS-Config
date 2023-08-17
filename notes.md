@@ -10,17 +10,23 @@
 
 - Curiously the cheesy system sends the wrong signal to the OpenWrt AP, I'm unsure if it's because of a version difference, router difference or just simply a bug.
 
-- Below is an example of what was originally sent from the FMS. In this case it's pulsing the AP with no team as there is either no match running or the match doesn't have a team placed in that slot yet for interface 1. on radio 0
-```
-uci batch <<ENDCONFIG && wifi radio0
-set wireless.@wifi-iface[1].disabled='0'
-set wireless.@wifi-iface[1].ssid='no-team-1'
-set wireless.@wifi-iface[1].key='no-team-1'
-commit wireless
-ENDCONFIG
-```
+  - Below is an example of what was originally sent from the FMS. In this case it's pulsing the AP with no team as there is either no match running or the match doesn't have a team placed in that slot yet for interface 1. on radio 0
+  ```
+  uci batch <<ENDCONFIG && wifi radio0
+  set wireless.@wifi-iface[1].disabled='0'
+  set wireless.@wifi-iface[1].ssid='no-team-1'
+  set wireless.@wifi-iface[1].key='no-team-1'
+  commit wireless
+  ENDCONFIG
+  ```
 
-- The issue is the `wifi radio0`, which i assume is short hand script for set wifi/radio0 in the up state. But openwrt doesn't detect it as such. So i've changed it to literally specify `wifi up radio0` and now I get correct configurations. (I've yet to test it with a robot)
+  - The issue is the `wifi radio0`, which i assume is short hand script for set wifi/radio0 in the up state. But openwrt doesn't detect it as such. So i've changed it to literally specify `wifi up radio0` and now I get correct configurations. (I've yet to test it with a robot)
+
+  ```go
+  func addConfigurationHeader(commandList string) string {
+    return fmt.Sprintf("uci batch <<ENDCONFIG && wifi up radio1\n%s\ncommit wireless\nENDCONFIG\n", commandList)
+  }
+  ```
 
 - My suspicious is that there will need to be vlan tagging of some kind on the dumb AP so when it passes it's info to the main router it's segregated. Might help stability slightly, i'll test both cases. At the moment i'm fairly certain all signals connected to the dumb ap are untagged. Only the driverstations are tagged vlans. They should be able to connect perfectly fine in theory. But it causes a security risk, the driverstations will be unable to access anything important, but malicious signals from the robots might be able to access and cause problems. Depending on if it's tagged with vlan100
 
