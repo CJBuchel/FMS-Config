@@ -1,3 +1,49 @@
+# Current Network Table
+## Ubiquiti 6P Router
+| Port                         | IP/Connection Data | Connects to     |
+|------------------------------|--------------------|-----------------|
+| Console                      | Baud 115200        | Serial (manage) |
+| Port 1.100/10/20/30/40/50/60 | 10.0.100.1         | Switch          |
+| Port 1.200                   | 10.0.200.1         | Switch          |
+| Port 2.100/10/20/30/40/50/60 | 10.0.100.1         | To AP           |
+| Port 3.100/200               | DHCP               | NAT Internet    |
+| Port 4                       | 192.168.1.1        | Ethernet Manage |
+
+## Asus AX53U AP
+| Port                         | IP/Connection Data | Connects to     |
+|------------------------------|--------------------|-----------------|
+| Port 1.100/10/20/30/40/50/60 | 10.0.100.3         | To Router       |
+| Port 2                       | 192.168.1.1        | Ethernet Manage |
+
+## Cisco 3500 Switch
+| Port                              | IP/Connection Data | Connects to         |
+|-----------------------------------|--------------------|---------------------|
+| Console                           | Baud 9600          | Serial (Manage)     |
+| Port 1.100/200/10/20/30/40/50/60  | 10.0.100.2         | To Router           |
+| Port 2.100/200/10/20/30/40/50/60  | 10.0.100.2         | Generic Vlan100     |
+| Port 3.100/200/10/20/30/40/50/60  | 10.0.100.2         | Generic Vlan100     |
+| Port 4.100/200/10/20/30/40/50/60  | 10.0.100.2         | Generic Vlan100     |
+| Port 5.100/200/10/20/30/40/50/60  | 10.0.100.2         | To FMS              |
+| Port 6.100/200/10/20/30/40/50/60  | 10.0.100.2         | Generic Vlan100     |
+| Port 7.100/200/10/20/30/40/50/60  | 10.0.100.2         | Generic Vlan100     |
+| Port 8.100/200/10/20/30/40/50/60  | 10.0.100.2         | Generic Vlan100     |
+| Port 9.100/200/10/20/30/40/50/60  | 10.0.100.2         | Generic Vlan100     |
+| Port 10.100/200/10/20/30/40/50/60 | 10.0.100.2         | Generic Vlan100     |
+| Port 11.200                       | 10.0.200.2         | To Guest Network AP |
+| Port 12.100/200/10/20/30/40/50/60 | 10.0.100.2         | Generic Vlan100     |
+| Port 13.100/200/10/20/30/40/50/60 | 10.0.100.2         | Generic Vlan100     |
+| Port 14.10                        | 10.0.1.61 (Modified By Telnet FMS) | Red 1           |
+| Port 15.100/200/10/20/30/40/50/60 | 10.0.100.2                         | Generic Vlan100 |
+| Port 16.20                        | 10.0.2.61 (Modified By Telnet FMS) | Red 2           |
+| Port 17.100/200/10/20/30/40/50/60 | 10.0.100.2                         | Generic Vlan100 |
+| Port 18.30                        | 10.0.3.61 (Modified By Telnet FMS) | Red 3           |
+| Port 19.100/200/10/20/30/40/50/60 | 10.0.100.2                         | Generic Vlan100 |
+| Port 20.40                        | 10.0.4.61 (Modified By Telnet FMS) | Blue 1          |
+| Port 21.100/200/10/20/30/40/50/60 | 10.0.100.2                         | Generic Vlan100 |
+| Port 22.50                        | 10.0.5.61 (Modified By Telnet FMS) | Blue 2          |
+| Port 23.100/200/10/20/30/40/50/60 | 10.0.100.2                         | Generic Vlan100 |
+| Port 24.60                        | 10.0.6.61 (Modified By Telnet FMS) | Blue 3          |
+
 # 14/8/23
 - The cheesy system is based off of a linksys router. I don't have that so I'm replicating it with two different machines
 
@@ -46,7 +92,7 @@
 
 - The radio connection wasn't working previously due to the way that cheesy accesses the ap. it ssh's into the ap and configures the ap in a very VERY specific way
   - The linksys router is very cool, and allows any of the radios to be either 2.4Ghz or 5Ghz. I'm unsure why but the default for the cheesy config linksys is radio0 is 5 and radio1 is 2.4. This is the reverse of normal radio configs where 0 is 2.4, and 1 is 5.
-  - The main problem there is our ap is our AX53U, and it has both 2.4Ghz and 5Ghz capabilities. Except like most "dual band" routers/ap's, radio0 is the 2.4, and radio1 is 5. And you can't swap their ranges.
+  - The main problem there is our ap is an AX53U, and it has both 2.4Ghz and 5Ghz capabilities. Except like most "dual band" routers/ap's, radio0 is the 2.4, and radio1 is 5. And you can't swap their ranges.
   - This means that for our setup the robots are actually connecting to radio1 not radio0. Not exactly a problem per say. But the cheesy arena only accepts linksys configs with the radio0 configuration.
   - To resolve this I changed the `access_point.go` code around to move to radio1, which also means that when it does it's test/check it's looking on the wrong wlan, the range normally of wlan0, wlan0-1, 0-2, 0-3... etc. Instead it needs wlan1 and wlan1-1 and so on.
 
@@ -132,3 +178,15 @@
   - And for the driverstations the switch is configured every new match to provide a new ip to that port. So anything that connects to it auto reconfigures between the range the switch sets. Effectively manually setting it to a static ip, for instance `10.97.88.101`.
   - The process of connecting between the switch and the ap is so segregated through vlans that the router can be taken completely out of the equation and the system would actually still work perfectly fine without it.
   - The exception being the firewall, other than needing routing and dhcp for normal devices like computers that aren't the server. The router effectively only has one job, and that's to check the data between it's lan0 and lan1 for breaches in the FRC accept and reject list of allowed ip, configurations and ports. This can be handled on the ap as well, removing the router all together, but as mentioned before. This does speed up the system slightly as all routing and firewall checking of every single packet is done on the faster ubiquity router instead of the ap. Leaving the ap to keep a steady wifi connection. It also adds extra ability for other computers to connect via normal dhcp and such, but in the event that no other computers other than the server are connected to the system. The router only handles the firewall between the driverstations and the radios.
+
+# 18/8/23
+- Added internet access to the FMS system
+  - When adding teams raw the FMS prefers an internet connection to grab the data from TBA
+  - Ports for the main router have been changed to allow for this
+    - port 1 -> switch
+    - port 2 -> AP
+    - port 3 -> external internet/wan (either home network or business network with no security)
+    - port 4 -> management port (ip: 192.168.1.1)
+
+  - The FMS have been given internet access through the switch to all vlan100 ports.
+  - I've also provided a new vlan for guest networks, vlan200. Which is now available on port 11 of the switch
